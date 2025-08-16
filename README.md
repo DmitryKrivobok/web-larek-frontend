@@ -140,6 +140,12 @@ export interface IAppAPI {
     orderProducts: (order: IOrder) => Promise<IOrderResult>;
 }
 ```
+Интерфейс изменения каталога
+```
+export type CatalogChangeEvent = {
+    catalog: CardItem[]
+};
+```
 Интерфейс отображения корзины товаров
 ```
 interface IBasketView {
@@ -225,11 +231,17 @@ Cвойства класса:
 
 - validateOrder() - проверяет обязательные поля заказа
 
+- setOrderField(field: keyof IOrderForm, value: string) - обновление конкретного поля формы и последующей проверки валидности всей формы
+
 - toggleOrderedItem(id: string, isIncluded: boolean) - обавляет или удаляет товар из заказа по его id
 
 - removeItemFromBasket(id: string) - удаляет товар из заказа по его id
 
-- clearBasket()- очищает список товаров в корзине
+- clearBasket() - очищает список товаров в корзине
+
+- getTotal() - считает сумму товаров в корзине
+
+- getBasketItems(): CardItem[] - получает элемент корзины 
 
 #### Класс CardItem
 

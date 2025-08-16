@@ -20,7 +20,7 @@ export interface IOrder extends IOrderForm {
     items: string[]
 }
 
-export type CardUpdate = Pick<IProduct, 'title' | 'price'>;
+export type CardUpdate = Pick<IProduct, 'title' | 'price'| 'id'>;
 
 export type PaymentModal = Pick<IOrderForm, 'address' | 'payment'>;
 

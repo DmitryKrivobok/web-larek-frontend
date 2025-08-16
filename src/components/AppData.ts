@@ -5,6 +5,11 @@ import { Model } from './base/Model';
 import { FormErrors } from '../types';
 import _ from 'lodash';
 import { IEvents } from './base/events';
+import { IOrderForm } from '../types';
+
+export type CatalogChangeEvent = {
+	catalog: CardItem[];
+};
 
 export class CardItem extends Model<IProduct> {
 	id: string;
@@ -13,8 +18,8 @@ export class CardItem extends Model<IProduct> {
 	image: string;
 	category: string;
 	price: number | null;
-	events: IEvents; 
-    emitChanges: () => void;
+	events: IEvents;
+	emitChanges: () => void;
 }
 
 export class AppState extends Model<IAppState> {
@@ -45,7 +50,13 @@ export class AppState extends Model<IAppState> {
 		return this.order.items.length;
 	}
 
-	validateOrder() {
+	getBasketItems(): CardItem[] {
+		return this.order.items
+			.map((id) => this.catalog.find((item) => item.id === id))
+			.filter((item): item is CardItem => item !== undefined);
+	}
+
+	validateOrder(): boolean {
 		const errors: typeof this.formErrors = {};
 		if (!this.order.email) {
 			errors.email = 'Необходимо указать email';
@@ -54,11 +65,19 @@ export class AppState extends Model<IAppState> {
 			errors.phone = 'Необходимо указать телефон';
 		}
 		if (!this.order.address) {
-			errors.phone = 'Необходимо указать адрес';
+			errors.address = 'Необходимо указать адрес';
 		}
 		this.formErrors = errors;
 		this.events.emit('formErrors:change', this.formErrors);
 		return Object.keys(errors).length === 0;
+	}
+
+
+	setOrderField(field: keyof IOrderForm, value: string) {
+		this.order[field] = value;
+		if (this.validateOrder()) {
+			this.events.emit('order:ready', this.order);
+		}
 	}
 
 	toggleOrderedItem(id: string, isIncluded: boolean) {
@@ -69,11 +88,26 @@ export class AppState extends Model<IAppState> {
 		}
 	}
 
-	removeItemFromBasket(id: string) {
-		this.toggleOrderedItem(id, false);
+	addItemToBasket(id: string) {
+		this.toggleOrderedItem(id, true);
+		this.getBasketCount();
+		this.events.emit('basket:updated', this.order.items);
 	}
 
-    clearBasket() {
-        this.order.items = [];
-    }
+	removeItemFromBasket(id: string) {
+		this.toggleOrderedItem(id, false);
+		this.getBasketCount();
+		this.events.emit('basket:delete', this.order.items);
+	}
+
+	clearBasket() {
+		this.order.items = [];
+	}
+
+	getTotal() {
+		return this.order.items.reduce(
+			(a, c) => a + this.catalog.find((it) => it.id === c).price,
+			0
+		);
+	}
 }

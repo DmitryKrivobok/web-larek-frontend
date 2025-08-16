@@ -8,9 +8,9 @@ export interface ICardActions {
 export interface IProduct {
     id: string;
     title: string;
-    description: string | string[];
-    image: string;
-    category: string;
+    description?: string | string[];
+    image?: string;
+    category?: string;
     price: number|null;
 }
 
@@ -19,14 +19,14 @@ export class Card<T> extends Component<IProduct> {
     protected _image?: HTMLImageElement;
     protected _description?: HTMLElement;
     protected _button?: HTMLButtonElement;
-    protected _category: HTMLElement;
+    protected _category?: HTMLElement;
     protected _price: HTMLElement;
 
     constructor(container: HTMLElement, actions?: ICardActions) {
         super(container);
 
         this._title = ensureElement<HTMLElement>(".card__title", container);
-        this._image = ensureElement<HTMLImageElement>(".card__image", container);
+        this._image = container.querySelector<HTMLImageElement>(".card__image") || undefined;
         this._button = container.querySelector(".card__button");
         this._description = container.querySelector(".card__text");
         this._category = container.querySelector(".card__category");
@@ -58,7 +58,9 @@ export class Card<T> extends Component<IProduct> {
     }
 
     set image(value: string) {
-        this.setImage(this._image, value, this.title)
+        if(this._image){
+        this.setImage(this._image, value, this.title);
+        }
     }
 
     set category(value: string) {
@@ -66,7 +68,7 @@ export class Card<T> extends Component<IProduct> {
     }
 
     set price(value: number) {
-        this.setText(this._price, value);
+        this.setText(this._price, `${value} синапсов`); 
     }
 
     set description(value: string | string[]) {
