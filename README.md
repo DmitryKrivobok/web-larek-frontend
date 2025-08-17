@@ -231,6 +231,8 @@ Cвойства класса:
 
 - validateOrder() - проверяет обязательные поля заказа
 
+- validateContacts(): boolean - валидируют поля почты и телефона
+
 - setOrderField(field: keyof IOrderForm, value: string) - обновление конкретного поля формы и последующей проверки валидности всей формы
 
 - toggleOrderedItem(id: string, isIncluded: boolean) - обавляет или удаляет товар из заказа по его id
@@ -242,6 +244,8 @@ Cвойства класса:
 - getTotal() - считает сумму товаров в корзине
 
 - getBasketItems(): CardItem[] - получает элемент корзины 
+
+- isInBasket(id: string): boolean - находится ли элемент в корзине
 
 #### Класс CardItem
 

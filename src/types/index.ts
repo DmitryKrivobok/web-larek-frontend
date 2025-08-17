@@ -1,3 +1,4 @@
+import { IEvents } from "../components/base/events";
 import { IProduct } from "../components/Card";
 
 
@@ -6,6 +7,7 @@ export interface IOrderForm {
     phone: string;
     address: string;
     payment: string;
+    total: number; 
 }
 
 export interface IAppState {

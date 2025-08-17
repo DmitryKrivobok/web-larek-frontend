@@ -82,4 +82,8 @@ export class Card<T> extends Component<IProduct> {
             this.setText(this._description, value);
         }
     }
+
+    setDisableStatus(value: boolean) {
+        this._button.disabled = value;
+    }
 }

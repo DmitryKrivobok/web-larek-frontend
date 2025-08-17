@@ -32,6 +32,7 @@ export class AppState extends Model<IAppState> {
 		address: '',
 		items: [],
 		payment: '',
+		total: 0
 	};
 	preview: string | null;
 	formErrors: FormErrors = {};
@@ -56,7 +57,27 @@ export class AppState extends Model<IAppState> {
 			.filter((item): item is CardItem => item !== undefined);
 	}
 
+	isInBasket(id: string): boolean {
+		const basketItems = this.getBasketItems()
+		return !!basketItems.find(item => item.id === id)
+	}
+
 	validateOrder(): boolean {
+		const errors: typeof this.formErrors = {};
+		if (!this.order.address) {
+			errors.address = 'Необходимо указать адрес';
+		}
+		if (!this.order.payment) {
+			errors.payment = 'Необходимо выбрать способ оплаты';
+		}
+		this.formErrors = errors;
+		this.events.emit('formErrors:change', this.formErrors);
+		return Object.keys(errors).length === 0;
+	}
+
+	
+
+	validateContacts(): boolean {
 		const errors: typeof this.formErrors = {};
 		if (!this.order.email) {
 			errors.email = 'Необходимо указать email';
@@ -64,20 +85,20 @@ export class AppState extends Model<IAppState> {
 		if (!this.order.phone) {
 			errors.phone = 'Необходимо указать телефон';
 		}
-		if (!this.order.address) {
-			errors.address = 'Необходимо указать адрес';
-		}
 		this.formErrors = errors;
 		this.events.emit('formErrors:change', this.formErrors);
 		return Object.keys(errors).length === 0;
 	}
+	
 
+	setOrderField(field: keyof IOrderForm, value: string | number) {
+ 		(this.order as any)[field] = value;
+ 			this.validateOrder();
+}
 
-	setOrderField(field: keyof IOrderForm, value: string) {
-		this.order[field] = value;
-		if (this.validateOrder()) {
-			this.events.emit('order:ready', this.order);
-		}
+	setContactsField(field: keyof IOrderForm, value: string | number) {
+		(this.order as any)[field] = value;
+		this.validateContacts();
 	}
 
 	toggleOrderedItem(id: string, isIncluded: boolean) {
@@ -91,12 +112,14 @@ export class AppState extends Model<IAppState> {
 	addItemToBasket(id: string) {
 		this.toggleOrderedItem(id, true);
 		this.getBasketCount();
+	    this.order.total = this.getTotal();
 		this.events.emit('basket:updated', this.order.items);
 	}
 
 	removeItemFromBasket(id: string) {
 		this.toggleOrderedItem(id, false);
 		this.getBasketCount();
+		this.order.total = this.getTotal();
 		this.events.emit('basket:delete', this.order.items);
 	}
 
@@ -104,10 +127,11 @@ export class AppState extends Model<IAppState> {
 		this.order.items = [];
 	}
 
-	getTotal() {
+	getTotal(): number {
 		return this.order.items.reduce(
 			(a, c) => a + this.catalog.find((it) => it.id === c).price,
 			0
 		);
 	}
 }
+

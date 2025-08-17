@@ -5,14 +5,14 @@ import { API_URL, CDN_URL } from './utils/constants';
 import { EventEmitter } from './components/base/events';
 import { AppState, CardItem, CatalogChangeEvent } from './components/AppData';
 import { Page } from './components/Page';
-import { Card, IProduct } from './components/Card';
+import { Card, IProduct} from './components/Card';
 import { cloneTemplate, createElement, ensureElement } from './utils/utils';
 import { Modal } from './components/base/Modal';
 import { Basket, IBasketView } from './components/Basket';
 import { CardUpdate, IOrderForm } from './types';
 import { Order } from './components/Order';
 import { Success } from './components/Success';
-import { identity } from 'lodash';
+import { identity, values } from 'lodash';
 
 const events = new EventEmitter();
 const api = new CatalogAPI(CDN_URL, API_URL);
@@ -80,20 +80,28 @@ events.on('preview:changed', (item: CardItem) => {
 	const showItem = (item: CardItem) => {
 		const card = new Card<IProduct>(cloneTemplate(cardPreviewTemplate), {
 			onClick: () => {
+			if (appData.isInBasket(item.id)) {
+				appData.removeItemFromBasket(item.id);
+			} else {
 				appData.addItemToBasket(item.id);
-				events.emit('basket:updated');
-			},
-		});
-		modal.render({
-			content: card.render({
-				title: item.title,
-				image: item.image,
-				description: item.description,
-				category: item.category,
-				price: item.price,
-			}),
-		});
-	};
+			}
+			events.emit('basket:updated');
+		},
+	});
+
+	const isInBasket = appData.isInBasket(item.id);
+	card.buttonText = isInBasket ? 'Убрать из корзины' : 'В корзину';
+
+	modal.render({
+		content: card.render({
+			title: item.title,
+			image: item.image,
+			description: item.description,
+			category: item.category,
+			price: item.price,
+		}),
+	});
+
 	if (item) {
 		api
 			.getProductItem(item.id)
@@ -106,7 +114,7 @@ events.on('preview:changed', (item: CardItem) => {
 	} else {
 		modal.close();
 	}
-});
+}});
 
 //Добавление товара в корзину
 events.on('basket:updated', () => {
@@ -179,52 +187,76 @@ events.on('order:open', () => {
 			phone: '',
 			address: '',
 			errors: '',
-			valid: false
+			valid: false,
+			
 		}),
 	});
 });
 
-events.on('order:ready', () => {
-    appData.formErrors = {};
-  // Обновляем состояние формы
-  order.errors = '';
-  order.valid = true;
-    modal.render({
-        content: contacts.render(contacts),
-    });
-});
-
-
 // Обработчик изменения ошибок формы
 events.on('formErrors:change', (errors: Partial<IOrderForm>) => {
-	const { email, phone, address } = errors;
-	order.valid = !email && !phone && !address;
-	order.errors = Object.values({ email, phone, address })
+	const { email, phone, address, payment } = errors;
+	
+	order.valid = !address && !payment;
+	order.errors = Object.values({ address, payment })
 		.filter((i) => !!i)
-		.join(';');
+		.join('; ');
+
+	contacts.valid = !email && !phone;
+	contacts.errors = Object.values({ email, phone })
+		.filter((i) => !!i)
+		.join('; ');
 });
 
-//Изменилось одно из полей
+
+//Изменилось одно из полей заказа (адрес и способ оплаты)
 events.on(
 	/^order\..*:change/,
 	(data: { field: keyof IOrderForm; value: string }) => {
 		appData.setOrderField(data.field, data.value);
+		
 	}
 );
 
-// Обработка изменения полей формы
+//Изменилось одно из полей контактов (email и phone)
+events.on(
+	/^contacts\..*:change/,
+	(data: { field: keyof IOrderForm; value: string }) => {
+		appData.setContactsField(data.field, data.value);
+	}
+);
 
-//Отправлена форма заказа
+
+
+//Отправлена форма заказа (первый этап) - открываем форму контактов
 events.on('order:submit', () => {
+	appData.formErrors = {};
+	modal.render({
+		content: contacts.render({
+			email: '',
+			phone: '',
+			valid: false,
+			errors: '',
+		})
+	});
+});
+
+//Отправлена форма контактов
+events.on('contacts:submit', () => {
+	if (!appData.validateContacts()) {
+		return;
+	}
+	
 	api.orderProducts(appData.order)
 		.then((result) => {
 			const success = new Success(cloneTemplate(successTemplate), {
 				onClick: () => {
 					modal.close();
 					appData.clearBasket();
-					events.emit('');
+					events.emit('basket:updated', appData.order.items);
 				},
 			});
+			success.total = appData.getTotal().toString();
 			modal.render({
 				content: success.render({}),
 			});
@@ -243,3 +275,8 @@ events.on('modal:open', () => {
 events.on('modal:close', () => {
 	page.locked = false;
 });
+
+//Выбор формы оплаты
+events.on('order.payment:change', (data: {field: keyof IOrderForm, value: string}) => {
+	appData.setOrderField(data.field, data.value)
+})
