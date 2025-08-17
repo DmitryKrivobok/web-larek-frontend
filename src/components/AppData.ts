@@ -75,8 +75,6 @@ export class AppState extends Model<IAppState> {
 		return Object.keys(errors).length === 0;
 	}
 
-	
-
 	validateContacts(): boolean {
 		const errors: typeof this.formErrors = {};
 		if (!this.order.email) {
@@ -90,7 +88,6 @@ export class AppState extends Model<IAppState> {
 		return Object.keys(errors).length === 0;
 	}
 	
-
 	setOrderField(field: keyof IOrderForm, value: string | number) {
  		(this.order as any)[field] = value;
  			this.validateOrder();

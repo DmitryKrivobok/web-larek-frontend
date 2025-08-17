@@ -5,7 +5,7 @@ import { API_URL, CDN_URL } from './utils/constants';
 import { EventEmitter } from './components/base/events';
 import { AppState, CardItem, CatalogChangeEvent } from './components/AppData';
 import { Page } from './components/Page';
-import { Card, IProduct} from './components/Card';
+import { Card, IProduct } from './components/Card';
 import { cloneTemplate, createElement, ensureElement } from './utils/utils';
 import { Modal } from './components/base/Modal';
 import { Basket, IBasketView } from './components/Basket';
@@ -41,13 +41,14 @@ const modal = new Modal(ensureElement<HTMLElement>('#modal-container'), events);
 //Переиспользуемые части интерфейса
 const basket = new Basket(cloneTemplate(basketTemplate), events);
 const order = new Order(cloneTemplate(orderTemplate), events);
-const contacts = new Order(cloneTemplate(contactsTemplate),events);
+const contacts = new Order(cloneTemplate(contactsTemplate), events);
 
 //Бизнес логика
 //Обработка событий
 
 //Получаем товары с сервера
-api.getProductList()
+api
+	.getProductList()
 	.then(appData.setCatalog.bind(appData))
 	.catch((err) => {
 		console.error(err);
@@ -80,27 +81,28 @@ events.on('preview:changed', (item: CardItem) => {
 	const showItem = (item: CardItem) => {
 		const card = new Card<IProduct>(cloneTemplate(cardPreviewTemplate), {
 			onClick: () => {
-			if (appData.isInBasket(item.id)) {
-				appData.removeItemFromBasket(item.id);
-			} else {
-				appData.addItemToBasket(item.id);
-			}
-			events.emit('basket:updated');
-		},
-	});
+				if (appData.isInBasket(item.id)) {
+					appData.removeItemFromBasket(item.id);
+				} else {
+					appData.addItemToBasket(item.id);
+				}
+				events.emit('basket:updated');
+			},
+		});
 
-	const isInBasket = appData.isInBasket(item.id);
-	card.buttonText = isInBasket ? 'Убрать из корзины' : 'В корзину';
+		const isInBasket = appData.isInBasket(item.id);
+		card.buttonText = isInBasket ? 'Убрать из корзины' : 'В корзину';
 
-	modal.render({
-		content: card.render({
-			title: item.title,
-			image: item.image,
-			description: item.description,
-			category: item.category,
-			price: item.price,
-		}),
-	});
+		modal.render({
+			content: card.render({
+				title: item.title,
+				image: item.image,
+				description: item.description,
+				category: item.category,
+				price: item.price,
+			}),
+		});
+	};
 
 	if (item) {
 		api
@@ -114,7 +116,7 @@ events.on('preview:changed', (item: CardItem) => {
 	} else {
 		modal.close();
 	}
-}});
+});
 
 //Добавление товара в корзину
 events.on('basket:updated', () => {
@@ -177,7 +179,6 @@ events.on('basket:open', () => {
 	});
 });
 
-
 //Открыть форму заказа
 events.on('order:open', () => {
 	appData.formErrors = {};
@@ -188,7 +189,6 @@ events.on('order:open', () => {
 			address: '',
 			errors: '',
 			valid: false,
-			
 		}),
 	});
 });
@@ -196,7 +196,7 @@ events.on('order:open', () => {
 // Обработчик изменения ошибок формы
 events.on('formErrors:change', (errors: Partial<IOrderForm>) => {
 	const { email, phone, address, payment } = errors;
-	
+
 	order.valid = !address && !payment;
 	order.errors = Object.values({ address, payment })
 		.filter((i) => !!i)
@@ -208,13 +208,11 @@ events.on('formErrors:change', (errors: Partial<IOrderForm>) => {
 		.join('; ');
 });
 
-
 //Изменилось одно из полей заказа (адрес и способ оплаты)
 events.on(
 	/^order\..*:change/,
 	(data: { field: keyof IOrderForm; value: string }) => {
 		appData.setOrderField(data.field, data.value);
-		
 	}
 );
 
@@ -226,8 +224,6 @@ events.on(
 	}
 );
 
-
-
 //Отправлена форма заказа (первый этап) - открываем форму контактов
 events.on('order:submit', () => {
 	appData.formErrors = {};
@@ -237,7 +233,7 @@ events.on('order:submit', () => {
 			phone: '',
 			valid: false,
 			errors: '',
-		})
+		}),
 	});
 });
 
@@ -246,8 +242,9 @@ events.on('contacts:submit', () => {
 	if (!appData.validateContacts()) {
 		return;
 	}
-	
-	api.orderProducts(appData.order)
+
+	api
+		.orderProducts(appData.order)
 		.then((result) => {
 			const success = new Success(cloneTemplate(successTemplate), {
 				onClick: () => {
@@ -277,6 +274,9 @@ events.on('modal:close', () => {
 });
 
 //Выбор формы оплаты
-events.on('order.payment:change', (data: {field: keyof IOrderForm, value: string}) => {
-	appData.setOrderField(data.field, data.value)
-})
+events.on(
+	'order.payment:change',
+	(data: { field: keyof IOrderForm; value: string }) => {
+		appData.setOrderField(data.field, data.value);
+	}
+);
