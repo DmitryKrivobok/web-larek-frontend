@@ -91,7 +91,15 @@ events.on('preview:changed', (item: CardItem) => {
 		});
 
 		const isInBasket = appData.isInBasket(item.id);
-		card.buttonText = isInBasket ? 'Убрать из корзины' : 'В корзину';
+	
+		if (item.price === null) {
+			card.buttonText = 'Бесценно'; 
+			card.setDisabled(card.getButton(), true); 
+		} else {
+			const buttonText = isInBasket ? 'Убрать из корзины' : 'В корзину';
+			card.buttonText = buttonText;
+			card.setDisabled(card.getButton()!, false);
+		}
 
 		modal.render({
 			content: card.render({

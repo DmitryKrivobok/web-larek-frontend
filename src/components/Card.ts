@@ -42,6 +42,10 @@ export class Card<T> extends Component<IProduct> {
 		}
 	}
 
+	public getButton(): HTMLButtonElement | undefined {
+		return this._button;
+	  }
+
 	set buttonText(value: string) {
 		if (this._button) {
 			this.setText(this._button, value);
@@ -74,9 +78,13 @@ export class Card<T> extends Component<IProduct> {
 		this.setText(this._category, value);
 	}
 
-	set price(value: number) {
-		this.setText(this._price, `${value} синапсов`);
-	}
+	set price(value: number | null) {
+		if (value === null) {
+		  this.setText(this._price, 'Бесценно');
+		} else {
+		  this.setText(this._price, `${value} синапсов`);
+		}
+	  }
 
 	set description(value: string | string[]) {
 		if (Array.isArray(value)) {
